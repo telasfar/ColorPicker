@@ -216,7 +216,7 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
   @objc func handleTap(_ touches:UIGestureRecognizer ) {
      var location = touches.location(in: colorWheelView)
      // guard let handle = currentHandle else { return  }
-      //fix here Maged
+      /*
       if !colorWheelView.pointIsInColorWheel(location) {
           // Touch is outside color wheel and should map to outermost edge.
           let center = colorWheelView.middlePoint
@@ -226,7 +226,7 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
                                                  y: center.y + radius * cos(angleToCenter))
           location = positionOnColorWheelEdge
       }
-      
+      */
       if let pixelColor = colorWheelView.pixelColor(at: location) {
         updateBothHandels(location: location, pixelColor: pixelColor)
           sendActions(for: .valueChanged)
