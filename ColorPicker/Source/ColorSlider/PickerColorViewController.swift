@@ -10,10 +10,14 @@ import UIKit
 
 class PickerColorViewController: UIViewController {
     
+    private var homeBrightHandle: ChromaColorHandle! // reference to home handle
+    private var homeOpacityHandle: ChromaColorHandle!
     let colorPicker = ChromaColorPicker()
     var sliderColour:SliderColorView?
     var colorChanged = #colorLiteral(red: 0.1045806482, green: 0, blue: 1, alpha: 1)
     let brightnessSlider = ChromaBrightnessSlider()
+    var containOpacity = false
+    var colorHistoryView:ColorHistoryView!
      var colorDelegate:ColorPickerChangedDelegate?
      let btnClose:UIButton = {
          let btn = UIButton()
@@ -32,6 +36,26 @@ class PickerColorViewController: UIViewController {
     lbl.backgroundColor = .clear
     return lbl
   }()
+    
+    let lblOpacity:UILabel = {
+      let lbl = UILabel()
+      lbl.text = "Opacity"
+      lbl.textColor = #colorLiteral(red: 0.2549019754, green: 0.2745098174, blue: 0.3019607961, alpha: 1)
+      lbl.textAlignment = .left
+      lbl.backgroundColor = .clear
+        lbl.font = UIFont.systemFont(ofSize: 9)
+      return lbl
+    }()
+    
+    let mainStackView:UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.distribution = .fill
+        stack.alignment = .fill
+        stack.clipsToBounds = true
+        stack.spacing = 6
+        return stack
+    }()
   
   let viewWhite:UIView = {
     let vW = UIView()
@@ -44,18 +68,21 @@ class PickerColorViewController: UIViewController {
     vW.layer.shadowOffset = CGSize(width: 2, height: 2)
     return vW
   }()
-  
+    
+  let sliderOpacity = ChromaOpacitySlider()
   let btnOk:UIButton = {
       let btn = UIButton()
-    
-    btn.setImage(UIImage(named: "okColor")?.tinted(with:#colorLiteral(red: 0, green: 0, blue: 0, alpha: 1) ), for: .normal)
-    
+      btn.setImage(UIImage(named: "okColor")?.tinted(with:#colorLiteral(red: 0, green: 0, blue: 0, alpha: 1) ), for: .normal)
       btn.backgroundColor = #colorLiteral(red: 1, green: 1, blue: 1, alpha: 0.6990047089)
       btn.layer.cornerRadius = 2
       btn.addTarget(self, action: #selector(btnOkPressed), for: .touchUpInside)
       return btn
   }()
   
+    var isNotEmptyHistory:Bool{
+        return containOpacity && !UserDefaults.colorsDataArr.isEmpty
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .clear
@@ -66,17 +93,100 @@ class PickerColorViewController: UIViewController {
         setupColorPickerHandles()
     }
     
+    
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return .lightContent
     }
+    public var startingColor : UIColor = .cyan {
+        didSet {
+            colorChanged = startingColor
+
+            guard  homeBrightHandle != nil else {
+                print("homeHandle nil")
+                return
+            }
+            homeBrightHandle.color = startingColor
+            homeOpacityHandle.color = startingColor
+            colorPicker.updateHandles()
+        }
+    }
     
-    // MARK: - Private
-    private var homeHandle: ChromaColorHandle! // reference to home handle
+//    func setupStoreView(){
+//         colorHistoryView = ColorHistoryView(pickerView: self)
+//      //  viewWhite.clipsToBounds = true
+//      //  view.isUserInteractionEnabled = true
+//        view.addSubview(colorHistoryView)
+//        colorHistoryView.anchor(viewWhite.bottomAnchor, left: viewWhite.leftAnchor, bottom: nil, right: viewWhite.rightAnchor, topConstant: 2, leftConstant: 0, bottomConstant: 0, rightConstant: 0, widthConstant: 0, heightConstant: 40)
+//        view.bringSubviewToFront(colorHistoryView.collectionView)
+//    }
+//
+//    func setupOpacitySlider(){
+//        sliderOpacity.connect(to: colorPicker)
+//        sliderOpacity.trackColor = UIColor.blue
+//        sliderOpacity.handleOpacity.borderWidth = 0.5
+//        sliderOpacity.handleOpacity.borderColor = .gray
+//        sliderOpacity.translatesAutoresizingMaskIntoConstraints = false
+//        view.addSubview(sliderOpacity)
+//
+//        NSLayoutConstraint.activate([
+//            sliderOpacity.centerXAnchor.constraint(equalTo: colorPicker.centerXAnchor),
+//            sliderOpacity.topAnchor.constraint(equalTo: brightnessSlider.bottomAnchor, constant: 10),
+//            sliderOpacity.bottomAnchor.constraint(equalTo: viewWhite.bottomAnchor, constant: -6),
+//
+//            sliderOpacity.widthAnchor.constraint(equalTo: colorPicker.widthAnchor, multiplier: 0.85),
+//            sliderOpacity.heightAnchor.constraint(equalTo: colorPicker.widthAnchor, multiplier: 0.06)
+//        ])
+//    }
+    
+    func setupStackView(){
+        viewWhite.addSubview(mainStackView)
+        mainStackView.anchor(lblTitle.topAnchor, left: viewWhite.leftAnchor, bottom:viewWhite.bottomAnchor , right: viewWhite.rightAnchor, topConstant: 6, leftConstant: 8, bottomConstant: 6, rightConstant: 8, widthConstant: 0, heightConstant: 0)
+        mainStackView.addArrangedSubview(colorPicker)
+        colorPicker .translatesAutoresizingMaskIntoConstraints = false
+        colorPicker.heightAnchor.constraint(equalTo: mainStackView.heightAnchor, multiplier: 0.75).isActive = true
+        
+//        if !isNotEmptyHistory{
+//            colorPicker.topAnchor.constraint(equalTo: mainStackView.topAnchor, constant: 8).isActive = true
+//        }
+//
+        mainStackView.addArrangedSubview(brightnessSlider)
+        
+        brightnessSlider.connect(to: colorPicker)
+        // Style
+        brightnessSlider.trackColor = UIColor.blue
+      brightnessSlider.handle.borderWidth = 0.5
+        brightnessSlider .translatesAutoresizingMaskIntoConstraints = false
+        brightnessSlider.heightAnchor.constraint(equalTo: mainStackView.heightAnchor, multiplier: 0.05).isActive = true
+        brightnessSlider.leftAnchor.constraint(equalTo: mainStackView.leftAnchor, constant: 4).isActive = true
+        brightnessSlider.rightAnchor.constraint(equalTo: mainStackView.rightAnchor, constant: -4).isActive = true
+//        brightnessSlider.widthAnchor.constraint(equalTo: mainStackView.widthAnchor, multiplier: 0.95).isActive = true
+//        brightnessSlider.centerXAnchor.constraint(equalTo: mainStackView.centerXAnchor).isActive = true
+         
+        mainStackView.addArrangedSubview(lblOpacity)
+        lblOpacity .translatesAutoresizingMaskIntoConstraints = false
+        lblOpacity.heightAnchor.constraint(equalTo: mainStackView.heightAnchor, multiplier: 0.025).isActive = true
+        
+        mainStackView.addArrangedSubview(sliderOpacity)
+        
+        sliderOpacity.connect(to: colorPicker)
+        sliderOpacity.trackColor = UIColor.blue
+        sliderOpacity.handleOpacity.borderWidth = 0.5
+        sliderOpacity.handleOpacity.borderColor = .gray
+        sliderOpacity .translatesAutoresizingMaskIntoConstraints = false
+        sliderOpacity.heightAnchor.constraint(equalTo: mainStackView.heightAnchor, multiplier: 0.05).isActive = true
+        sliderOpacity.leftAnchor.constraint(equalTo: mainStackView.leftAnchor, constant: 4).isActive = true
+        sliderOpacity.rightAnchor.constraint(equalTo: mainStackView.rightAnchor, constant: -4).isActive = true
+       
+        colorHistoryView = ColorHistoryView(pickerView: self)
+        mainStackView.addArrangedSubview(colorHistoryView)
+        colorHistoryView .translatesAutoresizingMaskIntoConstraints = false
+        colorHistoryView.heightAnchor.constraint(equalTo: mainStackView.heightAnchor, multiplier: 0.075).isActive = true
+        
+    }
     
   func setupColorPickerView(){
-    let topConstants:CGFloat = 16//view.frame.width/7
     view.addSubview(viewWhite)
-    viewWhite.anchor(view.topAnchor, left: view.leftAnchor, bottom: view.bottomAnchor, right: view.rightAnchor, topConstant: topConstants/4, leftConstant: topConstants/2, bottomConstant: topConstants/4, rightConstant: topConstants/2, widthConstant: 0, heightConstant: 0)
+    viewWhite.anchor(view.topAnchor, left: view.leftAnchor, bottom: view.bottomAnchor, right: view.rightAnchor, topConstant:0 ,leftConstant: 0, bottomConstant:-12, rightConstant: 0, widthConstant: 0, heightConstant: 0)
     colorPicker.delegate = self
     colorPicker.backgroundColor = .white
     
@@ -87,12 +197,20 @@ class PickerColorViewController: UIViewController {
     btnOk.anchor(viewWhite.topAnchor, left: nil, bottom: nil, right: viewWhite.rightAnchor, topConstant: 2, leftConstant: 0, bottomConstant: 0, rightConstant: 2, widthConstant: 30, heightConstant: 30)
     
     view.addSubview(lblTitle)
-    lblTitle.anchor(viewWhite.topAnchor, left: btnClose.rightAnchor, bottom: nil, right: btnOk.leftAnchor, topConstant: 16, leftConstant: 48, bottomConstant: 0, rightConstant: 48, widthConstant: 0, heightConstant: 0)
-    
+    lblTitle.anchor(viewWhite.topAnchor, left: btnClose.rightAnchor, bottom: nil, right: btnOk.leftAnchor, topConstant: 6, leftConstant: 48, bottomConstant: 0, rightConstant: 48, widthConstant: 0, heightConstant: 0)
+    if containOpacity{
+    setupStackView()
+        view.bringSubviewToFront(btnClose)
+        view.bringSubviewToFront(btnOk)
+        return
+    }
     view.addSubview(colorPicker)
-    colorPicker.anchor(lblTitle.bottomAnchor, left: viewWhite.leftAnchor, bottom: nil, right: viewWhite.rightAnchor, topConstant: 16, leftConstant: 12, bottomConstant: 0, rightConstant: 12, widthConstant: 0, heightConstant: 0)
+    colorPicker.anchor(lblTitle.bottomAnchor, left: viewWhite.leftAnchor, bottom: nil, right: viewWhite.rightAnchor, topConstant: 4, leftConstant: 12, bottomConstant: 0, rightConstant: 12, widthConstant: 0, heightConstant: 0)
     setupBrightnessSlider()
-    
+//    if containOpacity{
+//        setupOpacitySlider()
+//        setupStoreView()
+//    }
     view.bringSubviewToFront(btnClose)
     view.bringSubviewToFront(btnOk)
     
@@ -149,10 +267,23 @@ class PickerColorViewController: UIViewController {
 
     if let sliderColour = sliderColour{
      colorDelegate?.colorDidChange(color: colorChanged, sliderColour: sliderColour)
+        if  !UserDefaults.colorsDataArr.contains(colorChanged.asData){
+        UserDefaults.colorsDataArr.append(colorChanged.asData)
+        }
+        if UserDefaults.colorsDataArr.count > 10 {
+            UserDefaults.colorsDataArr.removeFirst()
+        }
     }
     colorDelegate?.dismissPicker()
 
   }
+    
+    func restoreSavedColor(savedColor:UIColor){
+        if let sliderColour = sliderColour{
+         colorDelegate?.colorDidChange(color: savedColor, sliderColour: sliderColour)
+        }
+        colorDelegate?.dismissPicker()
+    }
     
     private func setupBrightnessSlider() {
         brightnessSlider.connect(to: colorPicker)
@@ -162,16 +293,22 @@ class PickerColorViewController: UIViewController {
         
         // Layout
         brightnessSlider.translatesAutoresizingMaskIntoConstraints = false
+        
         view.addSubview(brightnessSlider)
         
         NSLayoutConstraint.activate([
             brightnessSlider.centerXAnchor.constraint(equalTo: colorPicker.centerXAnchor),
-            brightnessSlider.topAnchor.constraint(equalTo: colorPicker.bottomAnchor, constant: 12),
-            brightnessSlider.bottomAnchor.constraint(equalTo: viewWhite.bottomAnchor, constant: -8),
+            brightnessSlider.topAnchor.constraint(equalTo: colorPicker.bottomAnchor, constant: 4),
+//            brightnessSlider.bottomAnchor.constraint(equalTo: viewWhite.bottomAnchor, constant: -8),
             
-            brightnessSlider.widthAnchor.constraint(equalTo: colorPicker.widthAnchor, multiplier: 0.9),
-            brightnessSlider.heightAnchor.constraint(equalTo: colorPicker.widthAnchor, multiplier: 0.07)
+            brightnessSlider.widthAnchor.constraint(equalTo: colorPicker.widthAnchor, multiplier: 0.85),
+            brightnessSlider.heightAnchor.constraint(equalTo: colorPicker.widthAnchor, multiplier: 0.06)
         ])
+        if !containOpacity{
+            NSLayoutConstraint.activate([
+                brightnessSlider.bottomAnchor.constraint(equalTo: viewWhite.bottomAnchor, constant: -12)
+            ])
+        }
     }
     
     private func setupColorPickerHandles() {
@@ -192,14 +329,17 @@ class PickerColorViewController: UIViewController {
     }
     
     private func addHomeHandle() {
-        homeHandle = colorPicker.addHandle(at: .blue)
+        homeBrightHandle = colorPicker.addHandleBright(at: startingColor)
+        homeOpacityHandle = colorPicker.addHandleOpcaity(at: startingColor)
         
         // Setup custom handle view with insets
         let customImageView = UIView()//UIImageView(image: #imageLiteral(resourceName: "Blend").withRenderingMode(.alwaysTemplate))
         customImageView.contentMode = .scaleAspectFit
         customImageView.tintColor = .white
-        homeHandle.accessoryView = customImageView
-        homeHandle.accessoryViewEdgeInsets = UIEdgeInsets(top: 2, left: 4, bottom: 4, right: 4)
+        homeBrightHandle.accessoryView = customImageView
+        homeBrightHandle.accessoryViewEdgeInsets = UIEdgeInsets(top: 2, left: 4, bottom: 4, right: 4)
+        homeOpacityHandle.accessoryView = customImageView
+        homeOpacityHandle.accessoryViewEdgeInsets = UIEdgeInsets(top: 2, left: 4, bottom: 4, right: 4)
     }
 }
 
@@ -207,10 +347,12 @@ extension PickerColorViewController: ChromaColorPickerDelegate {
     func colorPickerHandleDidChange(_ colorPicker: ChromaColorPicker, handle: ChromaColorHandle, to color: UIColor) {
        // view.backgroundColor = color
        colorChanged = color
-
+        sliderOpacity.trackColor = color
+       // brightnessSlider.trackColor = color
+       // sliderOpacity.color = color
         // Here I can detect when the color is too bright to show a white icon
         // on the handle and change its tintColor.
-        if handle === homeHandle, let imageView = homeHandle.accessoryView as? UIImageView {
+        if handle === homeBrightHandle, let imageView = homeBrightHandle.accessoryView as? UIImageView {
             let colorIsBright = color.isLight
             
             UIView.animate(withDuration: 0.2, animations: {

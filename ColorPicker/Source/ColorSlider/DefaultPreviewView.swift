@@ -38,111 +38,111 @@ import UIKit
 ///
 
 public class DefaultPreviewView: UIView {
-	/// The animation duration when showing the preview. Defaults to `0.15`.
-	public var animationDuration: TimeInterval = 0.15
-	/// The side of the `ColorSlider` on which to show the preview view.
-	public enum Side {
-		/// Show the preview to the left of the slider. Valid when the ColorSlider orientation is vertical.
-		case left
-		
-		/// Show the preview to the right of the slider. Valid when the ColorSlider orientation is vertical.
-		case right
-		
-		/// Show the preview to the top of the slider. Valid when the ColorSlider orientation is horizontal.
-		case top
-		
-		/// Show the preview to the bottom of the slider. Valid when the ColorSlider orientation is horizontal.
-		case bottom
-	}
-	
-	/// The side of the ColorSlider that the preview should show on. Defaults to `.left`.
-	public var side: Side {
-		didSet {
-			calculateOffset()
-		}
-	}
-	
-	/// The scale of the slider for each preview state.
-	/// Defaults to:
-	/// * `.inactive`: `1`
-	/// * `.activeFixed`: `1.2`
-	/// * `.active`: `1.6`
-	public var scaleAmounts: [PreviewState: CGFloat] = [.inactive: 1.0,
-	                                                    .activeFixed: 1.1,
-	                                                    .active: 1.1]
-	
-	/// The number of points to offset the preview view from the slider when the state is set to `.active`. Defaults to `50`.
-	public var offsetAmount: CGFloat = 50 {
-		didSet {
-			calculateOffset()
-		}
-	}
-	
-	/// The actual offset of the preview view, calculated from `offsetAmount` and `side`.
-	/// This value is calculated automatically in `calculateOffset` and should only be modified externally by subclasses.
-	public var offset: CGPoint
-	
-	/// The view that displays the current color as its `backgroundColor`.
-  public var colorView: UIView = UIView()
-	
-	/// Enable haptics on iPhone 7 and above for state transitions to/from `.activeFixed`. Defaults to `true`.
-	public var hapticsEnabled: Bool = true
-	
-	/// :nodoc:
-	/// The last state that occurred, used to trigger haptic feedback when a selection occurs.
-	fileprivate var lastState: PreviewState = .inactive
-	
-	/// Initialize with a specific side.
-	/// - parameter side: The side of the `ColorSlider` to show on. Defaults to `.left`.
-	required public init(side: Side = .left) {
-		self.side = side
-	//	colorView.backgroundColor = .black
-   // colorView.layer.borderColor = UIColor.lightGray.cgColor
-		offset = CGPoint(x: -offsetAmount, y: 0)
-		
-		super.init(frame: .zero)
-    colorView = roundColorView(circleView: colorView, color: #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1))
-	//	backgroundColor = .clear
-    //layer.cornerRadius = bounds.height/2
-		// Outer shadow
-    /*
-		layer.shadowColor = UIColor.black.cgColor
-		layer.shadowRadius = 3
-		layer.shadowOpacity = 0.2
-		layer.shadowOffset = CGSize(width: 2, height: 2)
-		*/
-		// Borders
+    /// The animation duration when showing the preview. Defaults to `0.15`.
+    public var animationDuration: TimeInterval = 0.15
+    /// The side of the `ColorSlider` on which to show the preview view.
+    public enum Side {
+        /// Show the preview to the left of the slider. Valid when the ColorSlider orientation is vertical.
+        case left
+        
+        /// Show the preview to the right of the slider. Valid when the ColorSlider orientation is vertical.
+        case right
+        
+        /// Show the preview to the top of the slider. Valid when the ColorSlider orientation is horizontal.
+        case top
+        
+        /// Show the preview to the bottom of the slider. Valid when the ColorSlider orientation is horizontal.
+        case bottom
+    }
     
-		colorView.clipsToBounds = true
+    /// The side of the ColorSlider that the preview should show on. Defaults to `.left`.
+    public var side: Side {
+        didSet {
+            calculateOffset()
+        }
+    }
+    
+    /// The scale of the slider for each preview state.
+    /// Defaults to:
+    /// * `.inactive`: `1`
+    /// * `.activeFixed`: `1.2`
+    /// * `.active`: `1.6`
+    public var scaleAmounts: [PreviewState: CGFloat] = [.inactive: 1.0,
+                                                        .activeFixed: 1.1,
+                                                        .active: 1.1]
+    
+    /// The number of points to offset the preview view from the slider when the state is set to `.active`. Defaults to `50`.
+    public var offsetAmount: CGFloat = 50 {
+        didSet {
+            calculateOffset()
+        }
+    }
+    
+    /// The actual offset of the preview view, calculated from `offsetAmount` and `side`.
+    /// This value is calculated automatically in `calculateOffset` and should only be modified externally by subclasses.
+    public var offset: CGPoint
+    
+    /// The view that displays the current color as its `backgroundColor`.
+  public var colorView: UIView = UIView()
+    
+    /// Enable haptics on iPhone 7 and above for state transitions to/from `.activeFixed`. Defaults to `true`.
+    public var hapticsEnabled: Bool = true
+    
+    /// :nodoc:
+    /// The last state that occurred, used to trigger haptic feedback when a selection occurs.
+    fileprivate var lastState: PreviewState = .inactive
+    
+    /// Initialize with a specific side.
+    /// - parameter side: The side of the `ColorSlider` to show on. Defaults to `.left`.
+    required public init(side: Side = .left) {
+        self.side = side
+    //    colorView.backgroundColor = .black
+   // colorView.layer.borderColor = UIColor.lightGray.cgColor
+        offset = CGPoint(x: -offsetAmount, y: 0)
+        
+        super.init(frame: .zero)
+    colorView = roundColorView(circleView: colorView, color: #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1))
+    //    backgroundColor = .clear
+    //layer.cornerRadius = bounds.height/2
+        // Outer shadow
+    /*
+        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowRadius = 3
+        layer.shadowOpacity = 0.2
+        layer.shadowOffset = CGSize(width: 2, height: 2)
+        */
+        // Borders
+    
+        colorView.clipsToBounds = true
 //    colorView.layer.borderWidth = 0.7
 //    colorView.layer.borderColor = UIColor.lightGray.cgColor //UIColor.black.withAlphaComponent(0.1).cgColor
-		addSubview(colorView)
-		
-		calculateOffset()
-	}
-	
-	/// :nodoc:
-	public required init?(coder aDecoder: NSCoder) {
-		fatalError("init(coder:) has not been implemented")
-	}
-	
-	/// :nodoc:
-	override public func layoutSubviews() {
-		super.layoutSubviews()
-		
-		// Automatically set the preview view corner radius based on the shortest side
-		//layer.cornerRadius = min(bounds.width, bounds.height) / 2
-		 
-		// Inset the color view by 3 points, round the corners
+        addSubview(colorView)
+        
+        calculateOffset()
+    }
+    
+    /// :nodoc:
+    public required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    /// :nodoc:
+    override public func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Automatically set the preview view corner radius based on the shortest side
+        //layer.cornerRadius = min(bounds.width, bounds.height) / 2
+         
+        // Inset the color view by 3 points, round the corners
     let colorViewFrame = bounds.insetBy(dx: 0.1, dy: 0.1)
     
-		colorView.frame = colorViewFrame
+        colorView.frame = colorViewFrame
     //colorView.layer.cornerRadius = colorViewFrame.height/2
     colorView = roundColorView(circleView: colorView, color: #colorLiteral(red: 0, green: 0, blue: 0, alpha: 1))
 //    colorView.layer.borderWidth = 0.7
 //    colorView.layer.borderColor = UIColor.lightGray.cgColor
       //colorView.layer.cornerRadius = min(colorViewFrame.width, colorViewFrame.height) * 0.55
-	}
+    }
   
   func roundColorView(circleView:UIView,color:UIColor)->UIView{
      let roundView = circleView
@@ -167,86 +167,86 @@ public class DefaultPreviewView: UIView {
       //UIBezierPath(ovalIn: CGRect(x: shapeFrame.minX, y: shapeFrame.minY, width: shapeFrame.width, height: shapeFrame.height)).cgPath
     return path
   }
-	
-	/// Calculate the offset of the preview view when `offset` or `side` are set.
-	public func calculateOffset() {
-		switch side {
-		case .left:
-			offset = CGPoint(x: 0, y: 0)
-		case .right:
-			offset = CGPoint(x: 0, y: 0)
-		case .top:
-			offset = CGPoint(x: 0, y: -offsetAmount)
-		case .bottom:
-			offset = CGPoint(x: 0, y: offsetAmount)
-		}
-	}
+    
+    /// Calculate the offset of the preview view when `offset` or `side` are set.
+    public func calculateOffset() {
+        switch side {
+        case .left:
+            offset = CGPoint(x: 0, y: 0)
+        case .right:
+            offset = CGPoint(x: 0, y: 0)
+        case .top:
+            offset = CGPoint(x: 0, y: -offsetAmount)
+        case .bottom:
+            offset = CGPoint(x: 0, y: offsetAmount)
+        }
+    }
 }
 
 extension DefaultPreviewView: ColorSliderPreviewing {
-	/// Set the `backgroundColor` of `colorView` to the new `color`.
-	/// - parameter color: The new color.
-	public func colorChanged(to color: UIColor) {
+    /// Set the `backgroundColor` of `colorView` to the new `color`.
+    /// - parameter color: The new color.
+    public func colorChanged(to color: UIColor) {
     
     
     colorView = roundColorView(circleView: colorView, color: color)
    // colorView.backgroundColor = color
-	}
-	
-	/// Animating to the `CGAffineTransform` with:
-	/// * Translation: `offset`
-	/// * Scale: `scaleAmounts[state]`
-	/// - seealso: `offsetAmount`
-	/// - seealso: `scaleAmounts`
-	/// - seealso: `offset`
-	/// - parameter state: The new state to transition to.
-	public func transition(to state: PreviewState) {
-		// The `.beginFromCurrentState` option allows there to be no delay when another touch occurs and a previous transition hasn't finished.
-	//	UIView.animate(withDuration: animationDuration, delay: 0, options: [.curveEaseInOut, .beginFromCurrentState], animations: {
-			// Only show the outer shadow when the state is inactive.
+    }
+    
+    /// Animating to the `CGAffineTransform` with:
+    /// * Translation: `offset`
+    /// * Scale: `scaleAmounts[state]`
+    /// - seealso: `offsetAmount`
+    /// - seealso: `scaleAmounts`
+    /// - seealso: `offset`
+    /// - parameter state: The new state to transition to.
+    public func transition(to state: PreviewState) {
+        // The `.beginFromCurrentState` option allows there to be no delay when another touch occurs and a previous transition hasn't finished.
+    //    UIView.animate(withDuration: animationDuration, delay: 0, options: [.curveEaseInOut, .beginFromCurrentState], animations: {
+            // Only show the outer shadow when the state is inactive.
    // self.colorView.layer.borderWidth = 0.7 //(state == .inactive ? 0 : 1)
    
-			switch state {
+            switch state {
 
-			// Set the transform based on `scaleAmounts`.
-			case .inactive,
-			     .activeFixed:
-				let scaleAmount = self.scaleAmounts[state] ?? 1
-				let scaleTransform = CGAffineTransform(scaleX: scaleAmount, y: scaleAmount)
-				self.transform = scaleTransform
-				// self.colorView.layer.borderColor = UIColor.lightGray.cgColor
+            // Set the transform based on `scaleAmounts`.
+            case .inactive,
+                 .activeFixed:
+                let scaleAmount = self.scaleAmounts[state] ?? 1
+                let scaleTransform = CGAffineTransform(scaleX: scaleAmount, y: scaleAmount)
+                self.transform = scaleTransform
+                // self.colorView.layer.borderColor = UIColor.lightGray.cgColor
 //        layer.borderColor = UIColor.lightGray.cgColor
-			// Set the transform based on `scaleAmounts` and `offset`.
-			case .active:
-				let scaleAmount = self.scaleAmounts[state] ?? 1
-				let scaleTransform = CGAffineTransform(scaleX: scaleAmount, y: scaleAmount)
-				let translationTransform = CGAffineTransform(translationX: self.offset.x, y: self.offset.y)
-				self.transform = scaleTransform.concatenating(translationTransform)
-				
-			}
-		//}, completion: nil)
-		
-		// Haptics
-		if hapticsEnabled, #available(iOS 10.0, *) {
-			switch (lastState, state) {
-				
-			// Medium impact haptic when first drag outside bounds occurs.
-			case (.active, .activeFixed):
-				let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-				impactFeedback.impactOccurred()
-				
-			// Light impact haptic when color selection outside bounds occurs.
-			case (.activeFixed, .inactive):
-				let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-				impactFeedback.impactOccurred()
-			
-			// No haptic feedback for other state transitions.
-			default:
-				break
-				
-			}
-		}
-		
-		lastState = state
-	}
+            // Set the transform based on `scaleAmounts` and `offset`.
+            case .active:
+                let scaleAmount = self.scaleAmounts[state] ?? 1
+                let scaleTransform = CGAffineTransform(scaleX: scaleAmount, y: scaleAmount)
+                let translationTransform = CGAffineTransform(translationX: self.offset.x, y: self.offset.y)
+                self.transform = scaleTransform.concatenating(translationTransform)
+                
+            }
+        //}, completion: nil)
+        
+        // Haptics
+        if hapticsEnabled, #available(iOS 10.0, *) {
+            switch (lastState, state) {
+                
+            // Medium impact haptic when first drag outside bounds occurs.
+            case (.active, .activeFixed):
+                let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                impactFeedback.impactOccurred()
+                
+            // Light impact haptic when color selection outside bounds occurs.
+            case (.activeFixed, .inactive):
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+            
+            // No haptic feedback for other state transitions.
+            default:
+                break
+                
+            }
+        }
+        
+        lastState = state
+    }
 }

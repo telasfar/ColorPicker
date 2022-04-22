@@ -18,7 +18,7 @@ public protocol ChromaColorPickerDelegate: class {
 public class ChromaColorPicker: UIControl, ChromaControlStylable {
     
     public weak var delegate: ChromaColorPickerDelegate?
-    
+   // var isIntialize = false
     @IBInspectable public var borderWidth: CGFloat = 3.0 {
         didSet { layoutNow() }
     }
@@ -38,6 +38,12 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
         }
     }
     
+    private(set) public weak var opacitySlider: ChromaOpacitySlider? {
+        didSet {
+            oldValue?.removeTarget(self, action: nil, for: .valueChanged)
+        }
+    }
+    
     /// The size handles should be displayed at.
     public var handleSize: CGSize = defaultHandleSize {
         didSet { setNeedsLayout() }
@@ -51,7 +57,8 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
     private(set) public var handles: [ChromaColorHandle] = []
     
     /// The last active handle.
-    private(set) public var currentHandle: ChromaColorHandle?
+    private(set) public var currentBrightnessHandle: ChromaColorHandle?
+    private(set) public var currentOpacityHandle: ChromaColorHandle?
     
     //MARK: - Initialization
     
@@ -70,30 +77,48 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
       //  updateShadowIfNeeded()
         updateBorderIfNeeded()
         
+        updateHandles()
+    }
+    public func updateHandles() {
         handles.forEach { handle in
             let location = colorWheelView.location(of: handle.color)
             handle.frame.size = handleSize
             positionHandle(handle, forColorLocation: location)
         }
     }
-    
     // MARK: - Public
     
     @discardableResult
-    public func addHandle(at color: UIColor? = nil) -> ChromaColorHandle {
+    public func addHandleOpcaity(at color: UIColor? = nil) -> ChromaColorHandle {
+        let handleOpacity = ChromaColorHandle()
+        handleOpacity.color = color ?? defaultHandleColorPosition
+        addOpacityHandle(handleOpacity)
+        return handleOpacity
+    }
+    
+    @discardableResult
+    public func addHandleBright(at color: UIColor? = nil) -> ChromaColorHandle {
         let handle = ChromaColorHandle()
         handle.color = color ?? defaultHandleColorPosition
-        addHandle(handle)
+        addBrightnessHandle(handle)
         return handle
     }
     
-    public func addHandle(_ handle: ChromaColorHandle) {
+    public func addOpacityHandle(_ handle: ChromaColorHandle) {
+        handles.append(handle)
+       // colorWheelView.addSubview(handle)
+        opacitySlider?.trackColor = handle.color
+//        if currentBrightnessHandle == nil {
+//            currentBrightnessHandle = handle
+//        }
+    }
+    
+    public func addBrightnessHandle(_ handle: ChromaColorHandle) {
         handles.append(handle)
         colorWheelView.addSubview(handle)
         brightnessSlider?.trackColor = handle.color
-        
-        if currentHandle == nil {
-            currentHandle = handle
+        if currentBrightnessHandle == nil {
+            currentBrightnessHandle = handle
         }
     }
     
@@ -102,6 +127,12 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
         brightnessSlider = slider
     }
     
+    public func connectOpacity(_ slider: ChromaOpacitySlider) {
+        slider.addTarget(self, action: #selector(opacitySliderDidValueChange(_:)), for: .valueChanged)
+        opacitySlider = slider
+    }
+
+    
     // MARK: - Control
     
   public override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
@@ -109,25 +140,83 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
         
         for handle in handles {
             if extendedHitFrame(for: handle).contains(location) {
-                colorWheelView.bringSubviewToFront(handle)
+                
+                colorWheelView.bringSubviewToFront(handle)//momken ne3mel hash ?
               //  animateHandleScale(handle, shouldGrow: true)
                 
-                if let slider = brightnessSlider {
+                if let slider = brightnessSlider ,let sliderOpacity = opacitySlider{
                     slider.trackColor = handle.color.withBrightness(1)
+                    sliderOpacity.trackColor = handle.color.withAlphaComponent(1)
                     slider.currentValue = slider.value(brightness: handle.color.brightness)
+                    sliderOpacity.currentValue = sliderOpacity.value(opacity: 1-handle.color.alpha)
+                  //  if !isIntialize{
+                    currentBrightnessHandle = handle
+                    //    isIntialize = true
+
+                  //  }
+                  //  currentOpacityHandle = handle
+                    
                 }
                 
-                currentHandle = handle
+//                if let sliderOpacity = opacitySlider{
+//                    sliderOpacity.trackColor = handle.color.withAlphaComponent(1)
+//                    sliderOpacity.currentValue = sliderOpacity.value(opacity: handle.color.alpha)
+//                    currentOpacityHandle = handle
+//                }
+                
+               // currentHandle = handle
                 return true
             }
         }
         return false
     }
+    
+    func handleHanlde(_ handle:ChromaColorHandle,location:CGPoint,pixelColor:UIColor){
+        let previousBrightness = handle.color.brightness
+      let previousOpacity = handle.color.alpha
+      let brightcolor = pixelColor.withBrightness(previousBrightness).withAlphaComponent(previousOpacity)
+        handle.color = brightcolor
+      //  positionHandle(handle, forColorLocation: location)
+     // handle.color = brightcolor.withAlphaComponent(previousOpacity)//el hashed elmafrod lel handle beta3et el opacity
+      positionHandle(handle, forColorLocation: location)
+    }
   
+    func updateBothHandels(location:CGPoint,pixelColor:UIColor){
+        var previousBrightness:CGFloat = 0
+        var previousOpacity:CGFloat = 0
+        if let handleOpcaitys = currentOpacityHandle{
+            handleHanlde(handleOpcaitys, location: location, pixelColor: pixelColor)
+            previousOpacity = handleOpcaitys.color.alpha
+        }
+        if let hanleBright = currentBrightnessHandle{
+            handleHanlde(hanleBright, location: location, pixelColor: pixelColor)
+            previousBrightness = hanleBright.color.brightness
+            handleHanlde(hanleBright, location: location, pixelColor: pixelColor)
+            previousOpacity = hanleBright.color.alpha
+        }
+          
+          
+          if let slider = brightnessSlider {
+              slider.trackColor = pixelColor
+              slider.currentValue = slider.value(brightness: previousBrightness)
+          }
+        
+        if let sliderOpacity = opacitySlider{
+            sliderOpacity.trackColor = pixelColor
+            sliderOpacity.currentValue = sliderOpacity.value(opacity: 1-previousOpacity)
+        }
+        if let hanleBright = currentBrightnessHandle{
+          informDelegateOfColorChange(on: hanleBright)
+        }
+        if let handleOpcaitys = currentOpacityHandle{
+            informDelegateOfColorChange(on: handleOpcaitys)
+        }
+    }
+    
   @objc func handleTap(_ touches:UIGestureRecognizer ) {
-     var location = touches.location(in: colorWheelView) 
-      guard let handle = currentHandle else { return  }
-      
+     var location = touches.location(in: colorWheelView)
+     // guard let handle = currentHandle else { return  }
+      //fix here Maged
       if !colorWheelView.pointIsInColorWheel(location) {
           // Touch is outside color wheel and should map to outermost edge.
           let center = colorWheelView.middlePoint
@@ -139,23 +228,14 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
       }
       
       if let pixelColor = colorWheelView.pixelColor(at: location) {
-          let previousBrightness = handle.color.brightness
-          handle.color = pixelColor.withBrightness(previousBrightness)
-          positionHandle(handle, forColorLocation: location)
-          
-          if let slider = brightnessSlider {
-              slider.trackColor = pixelColor
-              slider.currentValue = slider.value(brightness: previousBrightness)
-          }
-          
-          informDelegateOfColorChange(on: handle)
+        updateBothHandels(location: location, pixelColor: pixelColor)
           sendActions(for: .valueChanged)
       }
       
   }
     public override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
         var location = touch.location(in: colorWheelView)
-        guard let handle = currentHandle else { return false }
+       
         
         if !colorWheelView.pointIsInColorWheel(location) {
             // Touch is outside color wheel and should map to outermost edge.
@@ -168,25 +248,39 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
         }
         
         if let pixelColor = colorWheelView.pixelColor(at: location) {
-            let previousBrightness = handle.color.brightness
-            handle.color = pixelColor.withBrightness(previousBrightness)
-            positionHandle(handle, forColorLocation: location)
-            
-            if let slider = brightnessSlider {
-                slider.trackColor = pixelColor
-                slider.currentValue = slider.value(brightness: previousBrightness)
-            }
-            
-            informDelegateOfColorChange(on: handle)
+//            let previousBrightness = handle.color.brightness
+//            handle.color = pixelColor.withBrightness(previousBrightness)
+//            positionHandle(handle, forColorLocation: location)
+//
+//            let previousOpacity = handle.color.alpha
+//            handle.color = pixelColor.withAlphaComponent(previousOpacity)
+//            let previousBrightness = handle.color.brightness
+//          let previousOpacity = handle.color.alpha
+//          let brightcolor = pixelColor.withBrightness(previousBrightness).withAlphaComponent(previousOpacity)
+//            handle.color = brightcolor
+//            positionHandle(handle, forColorLocation: location)
+//
+//            if let slider = brightnessSlider {
+//                slider.trackColor = pixelColor
+//                slider.currentValue = slider.value(brightness: previousBrightness)
+//            }
+//
+//            if let sliderOpacity = opacitySlider{
+//                sliderOpacity.trackColor = pixelColor
+//                sliderOpacity.currentValue = sliderOpacity.value(opacity: previousOpacity)
+//            }
+//
+//            informDelegateOfColorChange(on: handle)
+            updateBothHandels(location: location, pixelColor: pixelColor)
             sendActions(for: .valueChanged)
         }
        return true
     }
     
     public override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
-        if let handle = currentHandle {
+       // if let handle = currentHandle {
            // animateHandleScale(handle, shouldGrow: false)
-        }
+        //}
         sendActions(for: .touchUpInside)
     }
     
@@ -211,13 +305,13 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
     internal func setupColorWheelView() {
         colorWheelView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(colorWheelView)
-      colorWheelViewWidthConstraint = colorWheelView.widthAnchor.constraint(equalTo: self.widthAnchor, multiplier: 0.9)
+        colorWheelViewWidthConstraint = colorWheelView.widthAnchor.constraint(equalTo: self.widthAnchor, multiplier: 0.77)
         
         NSLayoutConstraint.activate([
             colorWheelView.centerXAnchor.constraint(equalTo: self.centerXAnchor),
             colorWheelView.centerYAnchor.constraint(equalTo: self.centerYAnchor),
             colorWheelViewWidthConstraint,
-            colorWheelView.heightAnchor.constraint(equalTo: self.widthAnchor, multiplier: 0.9),
+            colorWheelView.heightAnchor.constraint(equalTo: self.widthAnchor, multiplier: 0.77),
         ])//hena we modify the size of the wheel
     }
     
@@ -242,7 +336,15 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
 
     @objc
     internal func brightnessSliderDidValueChange(_ slider: ChromaBrightnessSlider) {
-        guard let currentHandle = currentHandle else { return }
+        guard let currentHandle = currentBrightnessHandle else { return }
+        
+        currentHandle.color = slider.currentColor
+        informDelegateOfColorChange(on: currentHandle)
+    }
+    
+    @objc
+    internal func opacitySliderDidValueChange(_ slider: ChromaOpacitySlider) {
+        guard let currentHandle = currentBrightnessHandle else { return }
         
         currentHandle.color = slider.currentColor
         informDelegateOfColorChange(on: currentHandle)
@@ -283,4 +385,4 @@ public class ChromaColorPicker: UIControl, ChromaControlStylable {
 }
 
 internal let defaultHandleColorPosition: UIColor = .white
-internal let defaultHandleSize: CGSize = CGSize(width: 28, height: 28)
+internal let defaultHandleSize: CGSize = CGSize(width: 30, height: 30)
