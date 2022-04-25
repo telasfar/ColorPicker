@@ -16,7 +16,7 @@ Pod::Spec.new do |spec|
   #
 
   spec.name         = "ColorPicker"
-  spec.version      = "0.0.1"
+  spec.version      = "1.1.0"
   spec.summary      = "To create simple ColorPicker."
 
   # This description is used to generate tags and improve search results.
@@ -66,7 +66,7 @@ Pod::Spec.new do |spec|
   # spec.platform     = :ios, "5.0"
 
   #  When using multiple platforms
-  # spec.ios.deployment_target = "5.0"
+   spec.ios.deployment_target = "10"
   # spec.osx.deployment_target = "10.7"
   # spec.watchos.deployment_target = "2.0"
   # spec.tvos.deployment_target = "9.0"
@@ -78,7 +78,7 @@ Pod::Spec.new do |spec|
   #  Supports git, hg, bzr, svn and HTTP.
   #
 
-  spec.source       = { :http => 'file:' + __dir__ + "/" }
+  spec.source       = { :git => "https://github.com/tariqmaged-bbn/ColorPicker.git", :tag => "#{spec.version}" }
 
 
   # ――― Source Code ―――――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
@@ -89,8 +89,9 @@ Pod::Spec.new do |spec|
   #  Not including the public_header_files will make all headers public.
   #
 
-  spec.source_files  = "Classes", "Classes/**/*.{h,m}"
-  spec.exclude_files = "Classes/Exclude"
+  spec.source_files  = "ColorPicker/Source/*.{swift}"
+  spec.swift_version = "5"
+  spec.exclude_files = "ColorPicker/Exclude"
 
   # spec.public_header_files = "Classes/**/*.h"
 
