@@ -99,7 +99,7 @@ import UIKit
     pickerController.removeFromParent()
   }
   
-    @objc public func addCustomVC(addGesture:Bool = true){
+    @objc public func addCustomVC(addGesture:Bool = false){
     pickerController.view.translatesAutoresizingMaskIntoConstraints = false
     presentedVC?.addChild(pickerController)
     pickerView?.addSubview(pickerController.view)
